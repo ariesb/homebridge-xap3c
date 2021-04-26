@@ -177,13 +177,13 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
       .setCharacteristic(hap.Characteristic.SerialNumber, config.did)
       .setCharacteristic(hap.Characteristic.FirmwareRevision, this.device.getFirmware());
 
-    this.airPurifierService = new Service.AirPurifier(this.name);
+    this.airPurifierService = new hap.Service.AirPurifier(this.name);
     this.airPurifierService
       .getCharacteristic(hap.Characteristic.Active)
       .on(CharacteristicEventTypes.GET, this.getPower.bind(this))
       .on(CharacteristicEventTypes.SET, this.setPower.bind(this));
 
-    this.airQualitySensorService = new Service.AirQualitySensor(this.name);
+    this.airQualitySensorService = new hap.Service.AirQualitySensor(this.name);
     this.airQualitySensorService
       .getCharacteristic(hap.Characteristic.AirQuality)
       .on(CharacteristicEventTypes.GET, this.getAirQuality.bind(this));
