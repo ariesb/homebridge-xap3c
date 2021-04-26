@@ -65,6 +65,7 @@ class AirPurifierDevice {
     model: "zhimi.airpurifier.mb4",
     firmware: "UNKNOWN"
   };
+  private callbacks: any[] = [];
 
   constructor(config: DeviceConfig, log: Logging) {
     this.config = config;
@@ -96,12 +97,24 @@ class AirPurifierDevice {
     });
   }
 
+  onChange(charateristics: string, callback: Function) {
+    this.callbacks.push({
+      charateristics,
+      callback
+    })
+  }
+
   private getProperty(props: any, siid: number, piid: number): any {
     return props.filter((p: any) => (p.siid === siid && p.piid === piid));
   }
 
   setDeviceCharateristics(props: any) {
     this.deviceCharateristics.power = this.getProperty(props, 2, 1).value;
+    this.deviceCharateristics.aqi = this.getProperty(props, 3, 4).value;
+
+    this.callbacks.forEach(calls => {
+      calls();
+    });
   }
 
   getDeviceCharacteristics(): DeviceCharacteristics {
@@ -126,7 +139,7 @@ class AirPurifierDevice {
           'piid': 1,
           'value': value
         }])
-        this.updateProperties();
+      this.updateProperties();
     } catch (deviceError) {
       this.log.error("Device failure: ", deviceError.code);
     }
@@ -171,7 +184,11 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
     };
     this.device = new AirPurifierDevice(deviceConfig, log);
 
+    this.device.onChange('power', this.onPowerChange.bind(this));
+    this.device.onChange('aqi', this.onAirQualityChange.bind(this));
+
     this.informationService = new hap.Service.AccessoryInformation()
+      .setCharacteristic(hap.Characteristic.Name, this.name)
       .setCharacteristic(hap.Characteristic.Manufacturer, "Xiaomi")
       .setCharacteristic(hap.Characteristic.Model, 'Mi Air Purifier 3C')
       .setCharacteristic(hap.Characteristic.SerialNumber, config.did)
@@ -188,7 +205,7 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
       .getCharacteristic(hap.Characteristic.AirQuality)
       .on(CharacteristicEventTypes.GET, this.getAirQuality.bind(this));
 
-    // setInterval(this.pollProperties, 30000);
+    setInterval(this.pollProperties.bind(this), 30000);
 
     log.info("Xiaomi Air Purifier 3C finished initializing!");
   }
@@ -240,18 +257,49 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
     }
   }
 
+  onPowerChange() {
+    this.log('onPowerChage');
+
+    try {
+      var powerState = this.device.getDeviceCharacteristics().power ? hap.Characteristic.Active.ACTIVE : hap.Characteristic.Active.INACTIVE;
+
+      this.airPurifierService
+        .getCharacteristic(hap.Characteristic.Active)
+        .setValue(powerState, undefined, 'fromOutsideHomekit');
+
+    } catch (e) {
+      this.log('onPowerChage Failed: ' + e);
+    }
+  }
+
+  private getAirQualityCharacteristic(aqi: number) {
+    let quality = hap.Characteristic.AirQuality.UNKNOWN;
+    if (aqi <= this.breakpoints[0]) { quality = hap.Characteristic.AirQuality.EXCELLENT; }
+    else if (aqi <= this.breakpoints[1]) { quality = hap.Characteristic.AirQuality.GOOD; }
+    else if (aqi <= this.breakpoints[2]) { quality = hap.Characteristic.AirQuality.FAIR; }
+    else if (aqi <= this.breakpoints[3]) { quality = hap.Characteristic.AirQuality.INFERIOR; }
+    else { quality = hap.Characteristic.AirQuality.POOR; }
+
+    return quality;
+  }
+
+  onAirQualityChange() {
+    this.log("onAirQualityChange");
+
+    try {
+      let aqi = this.device.getDeviceCharacteristics().aqi;
+      let quality = this.getAirQualityCharacteristic(aqi);
+      this.airQualitySensorService.setCharacteristic(hap.Characteristic.AirQuality, quality);
+    } catch (e) {
+      this.log('onAirQualityChange Failed: ' + e);
+    }
+  }
+
   getAirQuality(callback: Function) {
     try {
       let aqi = this.device.getDeviceCharacteristics().aqi;
       this.log("getAirQuality: " + aqi);
-      let quality = hap.Characteristic.AirQuality.UNKNOWN;
-
-      if (aqi <= this.breakpoints[0]) { quality = hap.Characteristic.AirQuality.EXCELLENT; }
-      else if (aqi <= this.breakpoints[1]) { quality = hap.Characteristic.AirQuality.GOOD; }
-      else if (aqi <= this.breakpoints[2]) { quality = hap.Characteristic.AirQuality.FAIR; }
-      else if (aqi <= this.breakpoints[3]) { quality = hap.Characteristic.AirQuality.INFERIOR; }
-      else { quality = hap.Characteristic.AirQuality.POOR; }
-
+      let quality = this.getAirQualityCharacteristic(aqi);
       return callback(null, quality);
     } catch (e) {
       this.log('getAirQuality Failed: ' + e);
