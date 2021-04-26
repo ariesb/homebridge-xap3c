@@ -1,0 +1,41 @@
+{
+  "name": "homebridge-xap3c",
+  "version": "0.1.0",
+  "description": "Homebridge Accessory for Xiaomi Air Purifier 3C",
+  "main": "dist/accessory.js",
+  "scripts": {
+    "clean": "rimraf ./dist",
+    "build": "rimraf ./dist && tsc",
+    "prepublishOnly": "npm run build",
+    "postpublish": "npm run clean",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Aries Beltran <me@ariesb.com>",
+  "engines": {
+    "homebridge": ">=1.0.0"
+  },
+  "keywords": [
+    "homebridge-plugin"
+  ],
+  "license": "ISC",
+  "files": [
+    "LICENSE",
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ariesb/homebridge-xap3c.git"
+  },
+  "bugs": {
+    "url": "http://github.com/ariesb/homebridge-xap3c/issues"
+  },
+  "devDependencies": {
+    "@types/node": "10.17.19",
+    "typescript": "^3.8.3",
+    "rimraf": "^3.0.2",
+    "homebridge": "^1.0.4"
+  },
+  "dependencies": {
+    "miio": "^0.15.6"
+  }
+}
