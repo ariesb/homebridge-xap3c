@@ -188,7 +188,7 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
       .getCharacteristic(hap.Characteristic.AirQuality)
       .on(CharacteristicEventTypes.GET, this.getAirQuality.bind(this));
 
-    setInterval(this.pollProperties, 30000);
+    // setInterval(this.pollProperties, 30000);
 
     log.info("Xiaomi Air Purifier 3C finished initializing!");
   }
@@ -215,7 +215,7 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
   }
 
   getPower(callback: CharacteristicGetCallback) {
-    this.log('getPower');
+    this.log('getPower: ' + (this.device.getDeviceCharacteristics().power ? "ON" : "OFF"));
 
     try {
       if (this.device.getDeviceCharacteristics().power == true) {
@@ -231,7 +231,6 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
 
   setPower(value: CharacteristicValue, callback: CharacteristicSetCallback) {
     this.log('setPower ' + value);
-
     try {
       this.device.powerSwitch(value === hap.Characteristic.Active.ACTIVE);
       callback();
@@ -242,11 +241,10 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
   }
 
   getAirQuality(callback: Function) {
-    this.log("getAirQuality");
-
     try {
-      var aqi = this.device.getDeviceCharacteristics().aqi;
-      var quality = hap.Characteristic.AirQuality.UNKNOWN;
+      let aqi = this.device.getDeviceCharacteristics().aqi;
+      this.log("getAirQuality: " + aqi);
+      let quality = hap.Characteristic.AirQuality.UNKNOWN;
 
       if (aqi <= this.breakpoints[0]) { quality = hap.Characteristic.AirQuality.EXCELLENT; }
       else if (aqi <= this.breakpoints[1]) { quality = hap.Characteristic.AirQuality.GOOD; }
