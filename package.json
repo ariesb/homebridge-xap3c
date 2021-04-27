@@ -1,6 +1,6 @@
 {
   "name": "homebridge-xap3c",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Homebridge Accessory for Xiaomi Air Purifier 3C",
   "main": "dist/accessory.js",
   "scripts": {
