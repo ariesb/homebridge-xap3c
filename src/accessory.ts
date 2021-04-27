@@ -111,6 +111,7 @@ class AirPurifierDevice {
     let oldAQIValue = this.deviceCharateristics.aqi;
     this.deviceCharateristics.power = this.getProperty(props, 2, 1).value;
     this.deviceCharateristics.aqi = this.getProperty(props, 3, 4).value;
+    this.deviceCharateristics.motorSpeed = this.getProperty(props, 9, 1).value;
 
     if (oldPowerValue != this.deviceCharateristics.power ||
       oldAQIValue != this.deviceCharateristics.aqi) this.callbacks();
@@ -236,7 +237,7 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
   }
 
   getPower(callback: CharacteristicGetCallback) {
-    this.log('getPower: ' + (this.device.getDeviceCharacteristics().power ? "ON" : "OFF"));
+    this.log(`getPower: ${(this.device.getDeviceCharacteristics().power ? "ON" : "OFF")}`);
 
     try {
       if (this.device.getDeviceCharacteristics().power == true) {
@@ -251,7 +252,7 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
   }
 
   setPower(value: CharacteristicValue, callback: CharacteristicSetCallback) {
-    this.log('setPower ' + value);
+    this.log(`Power: ${(value === hap.Characteristic.Active.ACTIVE) ? 'ON' : 'OFF'}`);
     try {
       this.device.powerSwitch(value === hap.Characteristic.Active.ACTIVE);
       callback();
@@ -309,7 +310,7 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
   getAirQuality(callback: CharacteristicGetCallback) {
     try {
       let aqi = this.device.getDeviceCharacteristics().aqi;
-      this.log("getAirQuality: " + aqi);
+      this.log(`Air Quality: ${aqi} μg/m³`);
       let quality = this.getAirQualityCharacteristic(aqi);
       return callback(null, quality);
     } catch (e) {
@@ -319,7 +320,7 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
   }
 
   getCurrentAirPurifierState(callback: CharacteristicGetCallback) {
-    this.log('getCurrentAirPurifierState');
+    this.log(`Motor Speed: ${this.device.getDeviceCharacteristics().motorSpeed} rpm`);
     try {
       var value = hap.Characteristic.CurrentAirPurifierState.INACTIVE;
 
