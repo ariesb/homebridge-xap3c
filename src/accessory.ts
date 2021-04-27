@@ -112,6 +112,7 @@ class AirPurifierDevice {
     this.deviceCharateristics.power = this.getProperty(props, 2, 1).value;
     this.deviceCharateristics.aqi = this.getProperty(props, 3, 4).value;
     this.deviceCharateristics.motorSpeed = this.getProperty(props, 9, 1).value;
+    this.deviceCharateristics.mode = this.getProperty(props, 2, 4).value;
 
     if (oldPowerValue != this.deviceCharateristics.power ||
       oldAQIValue != this.deviceCharateristics.aqi) this.callbacks();
@@ -132,16 +133,43 @@ class AirPurifierDevice {
 
   async powerSwitch(value: boolean) {
     try {
+      await this.setPropertyValue(2, 1, value);
+      this.updateProperties();
+    } catch (deviceError) {
+      this.log.error("Device powerSwitch failure: ", deviceError.code);
+    }
+  }
+
+  async mode(value: number) {
+    try {
+      await this.setPropertyValue(2, 4, value);
+      this.updateProperties();
+    } catch (deviceError) {
+      this.log.error("Device mode failure: ", deviceError.code);
+    }
+  }
+
+  async speed(value: number) {
+    try {
+      await this.setPropertyValue(9, 1, value);
+      this.updateProperties();
+    } catch (deviceError) {
+      this.log.error("Device mode failure: ", deviceError.code);
+    }
+  }
+
+  async setPropertyValue(siid: number, piid: number, value: any) {
+    try {
       await this.device
         .miioCall('set_properties', [{
           'did': this.config.did,
-          'siid': 2,
-          'piid': 1,
+          'siid': siid,
+          'piid': piid,
           'value': value
         }])
       this.updateProperties();
     } catch (deviceError) {
-      this.log.error("Device powerSwitch failure: ", deviceError.code);
+      this.log.error("Device setProperty failure: ", deviceError.code);
     }
   }
 
@@ -201,6 +229,11 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
     this.airPurifierService
       .getCharacteristic(hap.Characteristic.CurrentAirPurifierState)
       .on(CharacteristicEventTypes.GET, this.getCurrentAirPurifierState.bind(this));
+    this.airPurifierService
+      .getCharacteristic(hap.Characteristic.RotationSpeed)
+      .on(CharacteristicEventTypes.GET, this.getRotationSpeed.bind(this))
+      .on(CharacteristicEventTypes.SET, this.setRotationSpeed.bind(this));
+
 
     this.airQualitySensorService = new hap.Service.AirQualitySensor(this.name);
     this.airQualitySensorService
@@ -237,7 +270,7 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
   }
 
   getPower(callback: CharacteristicGetCallback) {
-    this.log(`getPower: ${(this.device.getDeviceCharacteristics().power ? "ON" : "OFF")}`);
+    this.log(`Power: ${(this.device.getDeviceCharacteristics().power ? "ON" : "OFF")}`);
 
     try {
       if (this.device.getDeviceCharacteristics().power == true) {
@@ -345,8 +378,36 @@ class XiaomiAirPurifier3CAccessory implements AccessoryPlugin {
       }
 
       this.airPurifierService.setCharacteristic(hap.Characteristic.CurrentAirPurifierState, value);
-  } catch(e) {
+    } catch (e) {
       this.log('onCurrentAirPurifierStateChange Failed: ' + e);
+    }
   }
-}
+
+  getRotationSpeed(callback: CharacteristicGetCallback) {
+    this.log(`Rotation Speed: ${this.device.getDeviceCharacteristics().motorSpeed}`);
+
+    try {
+      callback(null, this.device.getDeviceCharacteristics().motorSpeed);
+    } catch (e) {
+      this.log('getRotationSpeed Failed: ' + e);
+      callback(e);
+    }
+  }
+
+  setRotationSpeed(value: CharacteristicValue, callback: CharacteristicSetCallback) {
+    this.log(`setSpeed: ${value} `);
+
+    try {
+      this.device.speed(parseInt(value.toString()));
+
+      if (this.device.getDeviceCharacteristics().mode == 0) {
+        this.device.mode(2);
+      }
+
+      callback(null);
+    } catch (e) {
+      this.log('setSpeed Failed : ' + e);
+      callback(e);
+    }
+  }
 }
